@@ -68,7 +68,13 @@
     </ToolchainSettings>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="ad.asm">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="definitions.asm">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="drivers\distance_sensor.asm">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="drivers\ir_NEC.asm">

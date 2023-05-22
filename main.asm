@@ -30,20 +30,26 @@
 
 
 
-; ============ IVT ============
+; ===================================================================================
+; ===================================== IVT =========================================
+; ===================================================================================
 .org	0
 		jmp			reset
 
 .org	OVF0addr
 		jmp			handle_timer_ovf
 
+.org	ADCCaddr
+		jmp			DIST_SENSOR_isr
 
-		
+
+.org	0x30		
 
 ; ===================================================================================
 ; ===================================== DRIVERS =====================================
 ; ===================================================================================
 .include "drivers/lcd.asm"
+.include "drivers/distance_sensor.asm"
 
 ; ===================================================================================
 ; ===================================== LIBS ========================================
@@ -71,7 +77,7 @@
 ; @0:		menu index
 ; @1:		menu routine
 ; ===================================================================================
-.macro	CHECK_MENU ; menu id, branch location
+.macro	CHECK_MENU
 		cpi			menu_reg,		@0
 		brne		CHECK_MENU_no_match
 		jmp			@1
@@ -123,7 +129,6 @@ handle_timer_ovf_player_out_of_time:
 
 
 
-
 ; ===================================================================================
 ; ===================================== PROGRAM =====================================
 ; ===================================================================================
@@ -143,6 +148,12 @@ reset:
 
 		; INIT SPEAKER
 		sbi			DDRE,			SPEAKER
+
+		; INIT RANGE FINDER
+		rcall		DIST_SENSOR_init
+	
+		; to be removed
+		OUTI		DDRE,			0xFF
 
 		; INIT LCD
 		rcall		LCD_init
@@ -183,7 +194,6 @@ main_after:
 		lds			menu_reg,		CURR_MENU
 		cpi			menu_reg,		NUM_MENUS
 		brge		main_after_menu_overflow
-		WAIT_MS		50000
 		rjmp		main_after_welcome
 main_after_menu_overflow:
 		jmp			inf_loop
@@ -201,7 +211,7 @@ menu0:
 		ldi			r16,			2
 		rcall		circular_print
 		; Simulate start
-		WAIT_MS		2000
+		WAIT_MS		1000
 		NEXT_MENU
 		jmp			main_after
 
@@ -211,7 +221,7 @@ menu1:
 		ldi			r16,			1
 		rcall		circular_print
 		; Simulate start
-		WAIT_MS		5000
+		WAIT_MS		1000
 		NEXT_MENU
 
 		jmp			main_after
@@ -220,7 +230,14 @@ menu1:
 
 menu2:
 		PRINTF		LCD_putc
-.db		"Menu 2", 0
+.db		"Menu 2", LF, CR, "BTN0 to measure.", 0
+		in			w,				PIND
+		sbrc		w,				0
+		jmp			PC-2
+		rcall		DIST_SENSOR_get_dist
+
+		LCD_PRINT
+		.db			CR, CR, "Distance=", FDEC2, a, "     ", 0
 
 		jmp			inf_loop
 		jmp			main_after
