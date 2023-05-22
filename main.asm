@@ -43,8 +43,8 @@
 
 ; ============ LIBS ============
 .include "libs/lcd.asm"
+.include "libs/sound.asm"
 
-		
 
 
 ; ============ MACROS ============
@@ -115,8 +115,12 @@ reset:
 		OUTI		DDRB,			0xFF			; Make PORTB output
 		RESET_LEDS
 
+		; INIT SPEAKER
+		sbi			DDRE,			SPEAKER
+
 		; INIT LCD
 		rcall		LCD_init
+		rcall		LCD_clear
 
 
 		; INIT TIMER
@@ -129,14 +133,17 @@ reset:
 		rjmp		main
 
 
-welcome_message: .db "Bienvenue ! Pour demarrer, pressez le bouton MUTE de la telecommande.", 0
-how_to_play: .db "Placez la carte STK300 sous une surface, puis appuyez sur la touche MUTE de la telecommande afin de mesurer la distance et lancer la partie.", 0
-number_of_players: .db "Combien de joueurs participeront au jeu ? Entrez une valeur entre 1 et 9 a l'aide de la telecommande.", 0
-number_of_rounds: .db "Lorsque vous etes seul, vous pouvez choisir le nombre de tentatives auxquelles vous aurez le droit. Entrez une valeur entre 1 et 0 a l'aide de la telecommande.", 0
+welcome_message:	.db "Bienvenue ! Pour demarrer, pressez le bouton MUTE de la telecommande.", 0
+how_to_play:		.db "Placez la carte STK300 sous une surface, puis appuyez sur la touche MUTE de la telecommande afin de mesurer la distance et lancer la partie.", 0
+number_of_players:	.db "Combien de joueurs participeront au jeu ? Entrez une valeur entre 1 et 9 a l'aide de la telecommande.", 0
+number_of_rounds:	.db "Lorsque vous etes seul, vous pouvez choisir le nombre de tentatives auxquelles vous aurez le droit. Entrez une valeur entre 1 et 0 a l'aide de la telecommande.", 0
+
+
 
 main:
-		rcall		LCD_clear
+		rcall		welcome
 
+main_after_welcome:
 		lds			menu_reg,		CURR_MENU
 
 		CHECK_MENU	0,				menu0
@@ -150,10 +157,18 @@ main_after:
 		lds			menu_reg,		CURR_MENU
 		cpi			menu_reg,		NUM_MENUS
 		brge		main_after_menu_overflow
-		WAIT_MS		5000
-		rjmp		main
+		WAIT_MS		50000
+		rjmp		main_after_welcome
 main_after_menu_overflow:
 		jmp			inf_loop
+
+
+welcome:
+		LCD_PRINT
+		.db			"Bienvenue !", 0
+
+		rcall		play_welcome_sound
+		ret
 
 menu0:
 		LDIZ		2*welcome_message

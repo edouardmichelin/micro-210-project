@@ -89,6 +89,9 @@
     <Compile Include="libs\printf.asm">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="libs\sound.asm">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="macros.asm">
       <SubType>Code</SubType>
     </Compile>
