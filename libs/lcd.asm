@@ -38,8 +38,8 @@ circular_print_loop:								; this loop is for printing 1 entire cycle
 		push		r24
 		push		r25
 		rcall		LCD_clear
-		pop		r24
-		pop		r24
+		pop			r25
+		pop			r24
 		pop			r23
 		pop			r22
 		pop			r17
