@@ -1,5 +1,14 @@
-; file:	sound.asm   target ATmega128L-4MHz-STK300
-; purpose library, sound generation
+; ===================================================================================
+; file		sound.asm
+; purpose	sound generation and routines to play different melodies
+; target	ATmega128L-4MHz-STK300
+; authors	Edouard Michelin, Elena Dick, A. Schmid, R. Holzer
+; ===================================================================================
+
+
+; ===================================================================================
+; ===================================== MELODIES ====================================
+; ===================================================================================
 
 welcome_notes:
 		.db		do2, mi, so, do2, do2, so, mi, mi, 0
@@ -9,22 +18,42 @@ defeat_notes:
 		.db		do2, si, la, so, fa, mi, mi, 0
 
 
+
+; ===================================================================================
+; ===================================== ROUTINES ====================================
+; ===================================================================================
+
+
+; === play_welcome_sound ============================================================
+; purpose	play the welcome sound
+; ===================================================================================
 play_welcome_sound:
 		LDIZ	2*welcome_notes
 		rcall	play_sound
 		ret
 
+; === play_victory_sound ============================================================
+; purpose	play the victory sound
+; ===================================================================================
 play_victory_sound:
 		LDIZ	2*victory_notes
 		rcall	play_sound
 		ret
 
+
+; === play_defeat_sound ============================================================
+; purpose	play the defeat sound
+; ===================================================================================
 play_defeat_sound:
 		LDIZ	2*defeat_notes
 		rcall	play_sound
 		ret
 
 
+; === play_sound ====================================================================
+; purpose	play the given sound
+; in:		z		pointer to the melody to play in memory
+; ===================================================================================
 play_sound:
 		lpm
 		adiw	zl,		1
@@ -39,11 +68,13 @@ play_sound_end:
 
 
 
-
+; === sound =========================================================================
+; authors	A. Schmid, R. Holzer
+; purpose	play the given sound
+; in:		a0		period of oscillation (in 10us)
+;			b0		duration of sound (in 2.5ms)
+; ===================================================================================
 sound:
-; in	a0	period of oscillation (in 10us)
-; 		b0	duration of sound (in 2.5ms)
-
 		mov		b1,		b0		; duration high byte = b
 		clr		b0				; duration  low byte = 0
 		clr		a1				; period high byte = a

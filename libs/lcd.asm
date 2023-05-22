@@ -1,33 +1,67 @@
-/*
- * lcd.asm
- *
- *  Created: 5/21/2023 4:00:13 PM
- *   Author: Edouard
- */ 
+; ===================================================================================
+; file		lcd.asm
+; purpose	offer a library to print characters and strings on the LCD screen
+; target	ATmega128L-4MHz-STK300
+; authors	Edouard Michelin, Elena Dick
+; ===================================================================================
+
 
 .include "libs/printf.asm"
 
 
+; === LCD_PRINT =====================================================================
+; purpose	prints an error message on the LCD screen
+; ===================================================================================
 .macro	PRINT_ERROR
 		rcall		LCD_clear
 		PRINTF		LCD_putc
 .db		"Error", LF, CR, 0
 		.endmacro
 
-
+; === LCD_PRINT =====================================================================
+; purpose	prints a string on the LCD screen
+; ===================================================================================
 .macro	LCD_PRINT
 		rcall		LCD_clear
 		PRINTF		LCD_putc
 		.endmacro
 
+
+
+; === str_len =======================================================================
+; purpose	returns the length of a string
+; in:		z		pointer to the string in memory
+; out:		r23		size of the given string
+; ===================================================================================
+str_len:
+		clr			r23
+str_len_tst:
+		lpm			r17,		z
+		tst			r17
+		breq		str_len_ret
+		inc			r23
+		adiw		z,			1
+		rjmp		str_len_tst
+str_len_ret:
+		ret
+
+
+
 .equ	PRINTABLE_LEN = 16
 .equ	PRINT_SPEED = 200
-; string addr in z, number of cycles in r16
+
+
+; === circular_print ================================================================
+; purpose	prints a string of any length on the LCD screen by making it slide from right to left
+; in:		r16		how many times should the text cycle
+;			z		pointer to the text in memory
+; out:	
+; ===================================================================================
 circular_print:
 		mov			r24,		zl
 		mov			r25,		zh
 		clr			r22								; r22 = cycle counter
-		rcall		strslen							; r23 = len(z)
+		rcall		str_len							; r23 = str_len(z)
 circular_print_loop_pre:							; this loop is for printing multiple cycles
 		clr			r17								; r17 = current start position
 circular_print_loop:								; this loop is for printing 1 entire cycle
@@ -109,18 +143,4 @@ circular_print_loop_done:
 		jmp			circular_print_loop_pre
 circular_print_ret:
 		rcall		LCD_clear
-		ret
-		
-
-
-strslen:											; returns the string length (z) in reg r23
-		clr			r23
-strlen_tst:
-		lpm			r17,		z
-		tst			r17
-		breq		strstrlen_ret
-		inc			r23
-		adiw		z,			1
-		rjmp		strlen_tst
-strstrlen_ret:
 		ret
