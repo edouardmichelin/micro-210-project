@@ -2,6 +2,20 @@
 ; purpose library, mathematical routines
 ; copyright R.Holzer
 
+
+; === absolute value ( c = abs(a) )====================
+
+abs1:
+	tst		a0
+	brmi	abs1_neg
+abs1_ret:
+	mov		c0,		a0
+	ret
+abs1_neg:
+	neg		a0
+	rjmp	abs1_ret
+
+
 ; === unsigned multiplication (c=a*b) ===
 
 mul11:	clr	c1			; clear upper half of result c

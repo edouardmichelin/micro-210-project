@@ -13,9 +13,11 @@
 welcome_notes:
 		.db		do2, mi, so, do2, do2, so, mi, mi, 0
 victory_notes:
-		.db		so, so, so, so, la, la, si, si, so, so, re2, re2, re2, re2, 0
+		.db		so, mi, fa, so, si, do2, do2, do2, 0
 defeat_notes:
 		.db		do2, si, la, so, fa, mi, mi, 0
+wrong_notes:
+		.db		si, si, si, si, 0
 
 
 
@@ -41,11 +43,20 @@ play_victory_sound:
 		ret
 
 
-; === play_defeat_sound ============================================================
+; === play_defeat_sound =============================================================
 ; purpose	play the defeat sound
 ; ===================================================================================
 play_defeat_sound:
 		LDIZ	2*defeat_notes
+		rcall	play_sound
+		ret
+
+
+; === play_wrong_sound ==============================================================
+; purpose	play the wrong sound
+; ===================================================================================
+play_wrong_sound:
+		LDIZ	2*wrong_notes
 		rcall	play_sound
 		ret
 

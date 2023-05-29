@@ -68,19 +68,19 @@
     </ToolchainSettings>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="ad.asm">
-      <SubType>Code</SubType>
-    </Compile>
     <Compile Include="definitions.asm">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="drivers\distance_sensor.asm">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="drivers\ir_NEC.asm">
+    <Compile Include="drivers\ir_controller.asm">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="drivers\lcd.asm">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="game.asm">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="libs\lcd.asm">
@@ -89,10 +89,10 @@
     <Compile Include="libs\math.asm">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="libs\menu.asm">
+    <Compile Include="libs\printf.asm">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="libs\printf.asm">
+    <Compile Include="libs\remote.asm">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="libs\sound.asm">

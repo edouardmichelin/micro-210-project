@@ -5,7 +5,8 @@
 ; authors	Edouard Michelin, Elena Dick
 ; ===================================================================================
 
-.def DIST_SENSOR_flag_reg = r23
+.def	DIST_SENSOR_flag_reg = r23
+.equ	DIST_SENSOR_factor = 122									; 27 * output voltage = 27 * 4.5 = 121.5 ~= 122
 
 
 ; === str_len =======================================================================
@@ -21,12 +22,18 @@ DIST_SENSOR_init:
 ; out:		a		the distance in cm
 ; ===================================================================================
 DIST_SENSOR_get_dist:
-		clr			r23
+		clr			DIST_SENSOR_flag_reg
 		sbi			ADCSR,					ADSC					; AD start conversion
 		WB0			DIST_SENSOR_flag_reg,	0						; wait for conversion to be done
-		in			a0,						ADCL					; store result in register a
-		in			a1,						ADCH
-		rcall		DIST_SENSOR_lookup_dist
+		ldi			a0,						DIST_SENSOR_factor		; load DIST_SENSOR_factor in a
+		ldi			b0,						100
+		rcall		mul11											; c = a*b = DIST_SENSOR_factor * 100
+		movw		a1:a0,					c1:c0					; a = c
+		in			b0,						ADCL					; store result in register b
+		in			b1,						ADCH
+		rcall		div22											; c = a/b = (100*DIST_SENSOR_factor)/result
+		movw		a1:a0,					c1:c0					; move the result to register a
+
 		ret
 
 
@@ -36,14 +43,3 @@ DIST_SENSOR_get_dist:
 DIST_SENSOR_isr:
 		ldi			DIST_SENSOR_flag_reg,	0x01
 		reti
-
-
-; === DIST_SENSOR_lookup_dist =======================================================
-; purpose	converts the measure returned by the distance sensor in centimeters
-; in:		a		the distance in whatever unit
-; out:		a		the distance in cm
-; ===================================================================================
-DIST_SENSOR_lookup_dist:
-		; TODO
-		ret
-

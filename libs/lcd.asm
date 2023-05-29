@@ -12,8 +12,8 @@
 ; === LCD_PRINT =====================================================================
 ; purpose	prints an error message on the LCD screen
 ; ===================================================================================
-.macro	PRINT_ERROR
-		rcall		LCD_clear
+.macro	LCD_PRINT_ERROR
+		call		LCD_clear
 		PRINTF		LCD_putc
 .db		"Error", LF, CR, 0
 		.endmacro
@@ -22,8 +22,27 @@
 ; purpose	prints a string on the LCD screen
 ; ===================================================================================
 .macro	LCD_PRINT
-		rcall		LCD_clear
+		call		LCD_clear
 		PRINTF		LCD_putc
+		.endmacro
+
+
+; === LCD_PRINT_APPEND ==============================================================
+; purpose	prints a string on the LCD screen after the cursor
+; ===================================================================================
+.macro	LCD_PRINT_APPEND
+		PRINTF		LCD_putc
+		.endmacro
+
+
+; === CIRC_PRINT_ONCE ===============================================================
+; purpose	calls circular_print with param r16=1 and z=@0/2
+; in:		@0 pointer to the string to display
+; ===================================================================================
+.macro	CIRC_PRINT_ONCE
+		LDIZ		(2*@0)
+		ldi			r16,			1
+		rcall		circular_print
 		.endmacro
 
 
@@ -36,11 +55,11 @@
 str_len:
 		clr			r23
 str_len_tst:
-		lpm			r17,		z
+		lpm			r17,			z
 		tst			r17
 		breq		str_len_ret
 		inc			r23
-		adiw		z,			1
+		adiw		z,				1
 		rjmp		str_len_tst
 str_len_ret:
 		ret
@@ -65,19 +84,11 @@ circular_print:
 circular_print_loop_pre:							; this loop is for printing multiple cycles
 		clr			r17								; r17 = current start position
 circular_print_loop:								; this loop is for printing 1 entire cycle
-		push		r16
-		push		r17
-		push		r22
-		push		r23
-		push		r24
-		push		r25
+		PUSH2		r16, r17
+		PUSH4		r22, r23, r24, r25
 		rcall		LCD_clear
-		pop			r25
-		pop			r24
-		pop			r23
-		pop			r22
-		pop			r17
-		pop			r16
+		POP4		r22, r23, r24, r25
+		POP2		r16,r17
 
 		clr			r19								; r19 = current index
 		mov			zl,			r24
@@ -92,45 +103,21 @@ circular_print_loop_puts:							; this loop is for 1 screen print
 		tst			r21								; check if r21 = '\0'
 		breq		circular_print_loop_puts_done	; break from this loop if it is the case
 		
-		push		r16
-		push		r17
-		push		r18
-		push		r19
-		push		r20
-		push		r21
-		push		r22
-		push		r23
-		push		r24
-		push		r25
+		PUSH5		r16, r17, r18, r19, r20
+		PUSH5		r21, r22, r23, r24, r25
 		rcall		LCD_putc						; print the char
-		pop			r25
-		pop			r24
-		pop			r23
-		pop			r22
-		pop			r21
-		pop			r20
-		pop			r19
-		pop			r18
-		pop			r17
-		pop			r16
+		POP5		r21, r22, r23, r24, r25
+		POP5		r16, r17, r18, r19, r20
 		
 		adiw		z,			1					; increment z pointer
 		inc			r19								; increment the current index in the string
 		rjmp		circular_print_loop_puts		; continue printing characters
 circular_print_loop_puts_done:
-		push		r16
-		push		r17
-		push		r22
-		push		r23
-		push		r24
-		push		r25
+		PUSH2		r16, r17
+		PUSH4		r22, r23, r24, r25
 		WAIT_MS		PRINT_SPEED						; wait before "sliding" the text
-		pop			r25
-		pop			r24
-		pop			r23
-		pop			r22
-		pop			r17
-		pop			r16
+		POP4		r22, r23, r24, r25
+		POP2		r16,r17
 
 		inc			r17								; increment the starting position
 		cp			r17,		r23					; check if string has done the entire cycle
