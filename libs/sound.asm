@@ -16,14 +16,59 @@ victory_notes:
 		.db		so, mi, fa, so, si, do2, do2, do2, 0
 defeat_notes:
 		.db		do2, si, la, so, fa, mi, mi, 0
+
 wrong_notes:
 		.db		si, si, si, si, 0
 
+race_3_notes:
+		.db		so, 0
+race_2_notes:
+		.db		la, 0
+race_1_notes:
+		.db		si, 0
+race_go_notes:
+		.db		rem2, rem2, 0
 
 
 ; ===================================================================================
 ; ===================================== ROUTINES ====================================
 ; ===================================================================================
+
+
+; === play_race_3_sound =============================================================
+; purpose	play the welcome sound
+; ===================================================================================
+play_race_3_sound:
+		LDIZ	2*race_3_notes
+		rcall	play_sound
+		ret
+
+
+; === play_race_2_sound =============================================================
+; purpose	play the welcome sound
+; ===================================================================================
+play_race_2_sound:
+		LDIZ	2*race_2_notes
+		rcall	play_sound
+		ret
+
+
+; === play_race_1_sound =============================================================
+; purpose	play the welcome sound
+; ===================================================================================
+play_race_1_sound:
+		LDIZ	2*race_1_notes
+		rcall	play_sound
+		ret
+
+
+; === play_race_go_sound ============================================================
+; purpose	play the welcome sound
+; ===================================================================================
+play_race_go_sound:
+		LDIZ	2*race_go_notes
+		rcall	play_sound
+		ret
 
 
 ; === play_welcome_sound ============================================================

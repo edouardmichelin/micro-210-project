@@ -39,6 +39,8 @@
 ; ===================================================================================
 ; ===================================== LIBS ========================================
 ; ===================================================================================
+.include "libs/math.asm"
+.include "libs/printf.asm"
 .include "libs/lcd.asm"
 .include "libs/sound.asm"
 .include "libs/remote.asm"
@@ -99,11 +101,8 @@ handle_timer_ovf_ret:
 		pop			r16
 		reti
 handle_timer_ovf_player_out_of_time:
-		RESET_LEDS		
-		
-		lds			r16,			CURR_ROUND
-		inc			r16
-		sts			CURR_ROUND,	r16
+		RESET_LEDS
+		IRC_STOP_REG_SET
 
 		rjmp		handle_timer_ovf_ret
 

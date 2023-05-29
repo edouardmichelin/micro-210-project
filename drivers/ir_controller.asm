@@ -5,9 +5,41 @@
 ; authors	Edouard Michelin, Elena Dick
 ; ===================================================================================
 
-.equ			BTN_OK = -1
-.equ			BTN_ERR = -2
-.equ			PERIOD = 1940										; freq = 515Hz => bit period PERIOD = 1940 usec
+.equ		BTN_OK = -1
+.equ		BTN_ERR = -2
+.equ		PERIOD = 1940											; freq = 515Hz => bit period PERIOD = 1940 usec
+
+.def		IRC_stop_register = r25
+
+
+; === IRC_STOP_REG_CLEAR ============================================================
+; purpose	clears the IRC stop register
+; ===================================================================================
+.macro		IRC_STOP_REG_CLEAR
+			clr			IRC_stop_register
+			.endmacro		
+
+
+; === IRC_STOP_REG_SET ==============================================================
+; purpose	sets the IRC stop register
+; ===================================================================================
+.macro		IRC_STOP_REG_SET
+			ldi			IRC_stop_register,	1
+			.endmacro	
+
+
+
+; === GOTO_IIRCSS ===================================================================
+; purpose	Go to if IRC_stop(_register) set
+;			branch to the given label if IRC_stop_register = 1
+; in:		@0	the label to jump to
+; ===================================================================================
+.macro		GOTO_IIRCSS
+			sbrc		IRC_stop_register,	1
+			jmp			@0
+			.endmacro
+
+
 
 ; === IRC_get_value ==========================================================
 ; purpose	returns the value entered via the IR controller
@@ -19,10 +51,15 @@
 IRC_get_value:
 			CLR2		b1,					b0
 			ldi			b2,					14 						; load bit-counter
-			WP1			PINE,				IR						; wait if Pin=1
+IRC_get_value_check:
+			GOTO_IIRCSS	IRC_get_value_err
+			sbic		PINE,				IR						; wait if PINE_7 = 1
+			rjmp		IRC_get_value_check
 			WAIT_US		(PERIOD/4)									; wait a quarter period
 
 IRC_get_value_loop:
+			GOTO_IIRCSS	IRC_get_value_err							; if stop-register = 1 => exit
+
 			P2C			PINE,				IR						; move pin to carry
 			ROL2		b1,					b0						; roll carry into 2-byte reg
 			WAIT_US		(PERIOD-4)									; wait bit-period (-compensation)
@@ -55,6 +92,8 @@ IRC_get_value_err:
 			rjmp		IRC_get_value_ret
 
 
+
+; === IRC_lookup_table ==============================================================
 .equ		IRC_lookup_table_size = 11
 
 IRC_lookup_table:

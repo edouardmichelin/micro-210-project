@@ -8,27 +8,28 @@
 
 .def	menu_reg = r18
 
+
+.equ	SCORES = 0x4E0
 .equ	CURR_ROUND = 0x502
 .equ	SOLO_GAME = 0x504
 .equ	CURR_MENU = 0x506
 .equ	NUM_OF_PLAYERS = 0x508
 .equ	NUM_OF_ROUNDS = 0x50A
 .equ	MEASURED_DIST = 0x50C
-.equ	SCORES = 0x50E
 
 .equ	NUM_MENUS = 4
 .equ	MAX_PLAYERS = 9
 .equ	MAX_SOLO_ROUNDS = 9
 .equ	DISTANCE_EPSILON = 3
 
-welcome_message:	.db "Bienvenue ! ", 0, "Pour demarrer, pressez le bouton MUTE de la telecommande.", 0
-how_to_play:		.db "Placez la carte", 0, " STK300 sous une surface, puis appuyez sur la touche MUTE de la telecommande afin de mesurer la distance et lancer la partie.", 0
-number_of_players:	.db "Combien de joueurs", 0, " participeront au jeu ? Entrez une valeur entre 1 et 9 a l'aide de la telecommande.", 0
-number_of_rounds:	.db "Lorsque vous etes", 0, " seul, vous pouvez choisir le nombre de tentatives auxquelles vous aurez le droit. Entrez une valeur entre 1 et 9 a l'aide de la telecommande.", 0
-ready_to_start:		.db "La partie est", 0, " maintenant prete a debuter. Chaque tour est limite dans le temps ; vous devez entrez votre choix avant que la barre de LEDs rouge ne se remplisse. Pour valider votre reponse, pressez le bouton OK de la telecommande. A la fin de ce message, vous disposerez de 3 secondes avant que le debut du chronometre. Alors etes-vous pret ?", 0
+welcome_message:	.db "Bienvenue ! Pour demarrer, pressez le bouton MUTE de la telecommande.", 0
+how_to_play:		.db "Placez la carte STK300 sous une surface, puis appuyez sur la touche MUTE de la telecommande afin de mesurer la distance et lancer la partie.", 0
+number_of_players:	.db "Combien de joueurs participeront au jeu ? Entrez une valeur entre 1 et 9 a l'aide de la telecommande.", 0
+number_of_rounds:	.db "Lorsque vous etes seul, vous pouvez choisir le nombre de tentatives auxquelles vous aurez le droit. Entrez une valeur entre 1 et 9 a l'aide de la telecommande.", 0
+ready_to_start:		.db "La partie est maintenant prete a debuter. Chaque tour est limite dans le temps ; vous devez entrez votre choix avant que la barre de LEDs rouge ne se remplisse. Pour valider votre reponse, pressez le bouton OK de la telecommande. A la fin de ce message, vous disposerez de 3 secondes avant que le debut du chronometre. Alors etes-vous pret ?", 0
 value_too_low:		.db	"Vous etes trop en dessous...", 0
 value_too_high:		.db	"Vous etes trop en dessus !", 0
-play_again:			.db	"Pour recommencer la partie, appuyez sur la touche OK de votre telecommande"
+play_again:			.db	"Pour recommencer la partie, appuyez sur la touche OK de votre telecommande", 0
 
 
 
@@ -36,11 +37,33 @@ play_again:			.db	"Pour recommencer la partie, appuyez sur la touche OK de votre
 ; ===================================== MACROS ======================================
 ; ===================================================================================
 
+; === COUNT_DOWN ====================================================================
+; purpose	counts down before a race (3, 2, 1, GO!)
+;			displays the numbers on the LCD screen and plays a sound
+; ===================================================================================
+.macro	COUNT_DOWN
+		LCD_PRINT
+		.db				"3", 0
+		rcall			play_race_3_sound ; duration: 1/4 second
+		WAIT_MS			750
+		LCD_PRINT
+		.db				"2", 0
+		rcall			play_race_2_sound ; duration: 1/4 second
+		WAIT_MS			750
+		LCD_PRINT
+		.db				"1", 0
+		rcall			play_race_1_sound ; duration: 1/4 second
+		WAIT_MS			750
+		LCD_PRINT
+		.db				"Go !!!", 0
+		rcall			play_race_go_sound ; duration: 1/2 second
+		.endmacro
+
 
 ; === CHECK_MENU ====================================================================
 ; purpose	check with the menu register if the given menu should be displayed
-; @0:		menu index
-; @1:		menu routine
+; in:		@0:	menu index
+;			@1:	menu routine
 ; ===================================================================================
 .macro	CHECK_MENU
 		cpi			menu_reg,		@0
@@ -154,7 +177,7 @@ menu1_ask_n_rounds:														; let the player choose the number of rounds
 menu1_next:
 		CIRC_PRINT_ONCE	how_to_play
 		LCD_PRINT
-		.db				"OK pour mesurer", LF, CR, "Valeur = ", 0
+		.db				"OK pour mesurer", 0
 		rcall			Remote_wait_for_ok
 
 		rcall			DIST_SENSOR_get_dist
@@ -162,19 +185,6 @@ menu1_next:
 		sts				MEASURED_DIST,				a0					; store measured distance
 
 		CIRC_PRINT_ONCE	ready_to_start
-		
-		LCD_PRINT
-		.db				"3", 0
-		WAIT_MS			1000
-		LCD_PRINT
-		.db				"2", 0
-		WAIT_MS			1000
-		LCD_PRINT
-		.db				"1", 0
-		WAIT_MS			1000
-		LCD_PRINT
-		.db				"Go !!!", 0
-		WAIT_MS			500
 
 		NEXT_MENU
 
@@ -188,50 +198,89 @@ menu1_next:
 menu2:
 		lds				r16,						SOLO_GAME
 		cpi				r16,						1					; if SOLO_GAME = 1 => go to solo game
-		breq			menu2_solo_game
+		brne			menu2_multi_game
+		jmp				menu2_solo_game
 
-		inc				a0												; increment CURR_ROUND because players indexing is 1-based whereas rounds are 0-based
+menu2_multi_game:
+		lds				r16,						CURR_ROUND			; a = current-round
+		clr				a1
+		lds				r17,						NUM_OF_PLAYERS
+		cp				r16,						r17					; if CURR_ROUND >= NUM_OF_PLAYERS => go to next menu
+		brlt			menu2_multi_game_cont
+		jmp				menu2_multi_game_done
+
+menu2_multi_game_cont:
+		COUNT_DOWN
+		START_TIMER
+		
+		lds				a0,							CURR_ROUND			; a = current-round
+		inc				a0												; increment CURR_ROUND for printing because players indexing is 1-based whereas rounds are 0-based
 		LCD_PRINT
 		.db				"Joueur ", FDEC, a, LF, CR, "Valeur = ", 0
 
-menu2_multi_game: ; TODO
-		LCD_PRINT
-		.db				"Valeur = ", 0
-
-		START_TIMER
-
 		; ask the user to enter a value
-		rcall			Remote_read_dec_until_ok
+		rcall			Remote_read_dec_until_ok						; a0 = value
 
+		STOP_TIMER
+		GOTO_IIRCSS		menu2_multi_game_timeout						; if stop-register = 1 => go to next player
+
+		; compute the score (the distance between guessed and actual value) of the current player
+		lds				r16,						MEASURED_DIST		; load actual distance from RAM
+		sub				a0,							r16					; compute the distance between MEASURED_DIST and value input by user
+		rcall			abs1											; c0 = abs(a0)
+		
+		; register the score of the current player
+		LDIZ			SCORES											; z = SCORES + *CURR_ROUND
+		lds				r16,						CURR_ROUND
+		ADDZ			r16
+		st				z,							c0					; register the score
+		
+menu2_multi_game_next:
+		NEXT_ROUND
+		rjmp			menu2_multi_game
+
+menu2_multi_game_timeout:
+		rcall			play_wrong_sound
+		rjmp			menu2_multi_game_next
+
+menu2_multi_game_done:
 		rjmp			menu2_done
+
 
 menu2_solo_game:
 		lds				a0,							CURR_ROUND			; a = CURR_ROUND
 		clr				a1
 		lds				r17,						NUM_OF_ROUNDS
 		cp				a0,							r17					; if CURR_ROUND >= NUM_OF_ROUNDS => go to next menu
-		brge			menu2_done
+		brlt			menu2_solo_game_cont
+		jmp				menu2_solo_game_done
+
+menu2_solo_game_cont:		
+		COUNT_DOWN
+		START_TIMER
 
 		LCD_PRINT
 		.db				"Solo", LF, CR, "Valeur = ", 0
-
-		START_TIMER
 
 		; ask the user to enter a value
 		rcall			Remote_read_dec_until_ok
 
 		STOP_TIMER
+		GOTO_IIRCSS		menu2_solo_game_timeout							; if stop-register = 1 => go to next round
 
-		lds				r16,						MEASURED_DIST		; load actual distance from RAM
+		lds				r16,						MEASURED_DIST		; load actual distance from RAMRemote_read_dec_until_ok
 		PUSH2			a0,							r16					; a0 = guess distance | r16 = actual distance
 		sub				a0,							r16					; compute the distance between MEASURED_DIST and value input by user
 		rcall			abs1											; c0 = abs(a0)
 		sts				SCORES,						c0					; register the score (the distance between guessed and actual value)
+
+
+
 		mov				r16,						c0
 
 		cpi				r16,						DISTANCE_EPSILON	; check that the distance is less than DISTANCE_EPSILON
 		POP2			a0,							r16
-		brlt			menu2_done										; if it is the case, that's a win
+		brlt			menu2_solo_game_done							; if it is the case, that's a win
 		PUSH2			a0, r16
 		rcall			play_wrong_sound								; play the "wrong answer" sound
 		POP2			a0,							r16
@@ -249,6 +298,13 @@ menu2_solo_game_less:
 menu2_solo_game_next:
 		NEXT_ROUND
 		rjmp			menu2_solo_game
+
+menu2_solo_game_timeout:
+		rcall			play_wrong_sound
+		rjmp			menu2_solo_game_next
+
+menu2_solo_game_done:
+		rjmp			menu2_done
 		
 
 menu2_done:
@@ -264,9 +320,40 @@ menu2_done:
 menu3:
 		lds				r16,						SOLO_GAME
 		cpi				r16,						1					; if SOLO_GAME = 1 => go to solo game
-		breq			menu3_solo_game
+		brne			menu3_multi_game
+		jmp				menu3_solo_game
 
 menu3_multi_game: ; TODO
+
+		; find the best score
+		CLR3			r16, r17, r18									; r16 = best-player-id
+																		; r17 = current best score
+																		; r18 = loop counter
+		lds				r19,						NUM_OF_PLAYERS
+		LDIZ			SCORES
+
+menu3_multi_game_loop:
+		ld				r20,						z+					; load score of current player
+		cp				r20,						r17					; compare the score with the current best
+		brge			menu3_multi_game_loop_continue					; if the score is not better, continue
+		mov				r16,						r18					; update current best player
+		mov				r17,						r20					; update current best score
+	
+menu3_multi_game_loop_continue:
+		inc				r18												; increment loop counter
+		cp				r18,						r19					; loop while loop counter < num-of-players
+		brlt			menu3_multi_game_loop
+		
+		; display the winner
+		mov				a0,							r16					; load best player id
+		inc				a0												; increment because players are 1-based and player ids are 0-based
+		clr				a1
+		lds				b0,							MEASURED_DIST		; b = actual distance
+		clr				b1
+		LCD_PRINT
+		.db				"Victoire de : ", FDEC, a, LF, CR, "Reponse = ", FDEC, b, 0
+		rcall			play_victory_sound
+		
 		rjmp			menu3_done
 
 menu3_solo_game:
@@ -275,7 +362,7 @@ menu3_solo_game:
 		cpi				a0,							DISTANCE_EPSILON
 		lds				a0,							MEASURED_DIST		; get the measured distance to display it
 		clr				a1
-		brlt			menu3_solo_game_win
+		brge			menu3_solo_game_defeat
 
 menu3_solo_game_win:													; display the victory message and play the victory sound
 		LCD_PRINT
@@ -288,14 +375,14 @@ menu3_solo_game_defeat:													; display the defeat message and play the de
 		rcall			play_defeat_sound
 		rjmp			menu3_done
 
-menu3_done:	
+menu3_done:
 		WAIT_MS			5000
 		NEXT_MENU
 		ret
 
 
 ; === menu4 =========================================================================
-; purpose	asks the user whether they want to play again
+; purpose	asks the user if they want to play again
 ; ===================================================================================
 menu4:
 		CIRC_PRINT_ONCE	play_again
@@ -303,5 +390,5 @@ menu4:
 		.db				"OK pour relancer", 0
 
 		rcall			Remote_wait_for_ok
-		RESET_MENUS
+		rcall			reset
 		ret
