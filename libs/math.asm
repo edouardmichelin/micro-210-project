@@ -2,7 +2,7 @@
 ; file		math.asm
 ; purpose	library, mathematical routines
 ; target	ATmega128L-4MHz-STK300
-; authors	Edouard Michelin, Elena Dick
+; authors	Edouard Michelin, Elena Dick, R. Holzer
 ; ===================================================================================
 
 

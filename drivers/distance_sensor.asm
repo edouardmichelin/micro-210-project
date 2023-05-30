@@ -6,7 +6,9 @@
 ; ===================================================================================
 
 .def	DIST_SENSOR_flag_reg = r23
-.equ	DIST_SENSOR_factor = 122									; 27 * output voltage = 27 * 4.5 = 121.5 ~= 122
+.equ	DIST_SENSOR_factor = 122									; 27 * output voltage + custom factor = 122
+																	; the custom factor is just so that the result is the
+																	; distance from the ground instead of from the sensor
 
 
 ; === str_len =======================================================================
@@ -39,6 +41,8 @@ DIST_SENSOR_get_dist:
 
 ; === DIST_SENSOR_isr ===============================================================
 ; purpose	interrupt service routine (ISR) for the distance sensor
+;			its role is simply to set a bit in the register used by the routine triggering
+;			the conversion from the ADC so that it knows when the converter is finished
 ; ===================================================================================
 DIST_SENSOR_isr:
 		ldi			DIST_SENSOR_flag_reg,	0x01

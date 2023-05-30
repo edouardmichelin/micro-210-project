@@ -33,7 +33,7 @@
 
 
 ; === CIRC_PRINT_ONCE ===============================================================
-; purpose	calls circular_print with param r16=1 and z=@0/2
+; purpose	calls circular_print with param r16=1 (a single cycle) and z=@0*2
 ; in:		@0 pointer to the string to display
 ; ===================================================================================
 .macro	CIRC_PRINT_ONCE
@@ -78,6 +78,9 @@ circular_print:
 		mov			r25,		zh
 		clr			r22								; r22 = cycle counter
 		rcall		str_len							; r23 = str_len(z)
+		tst			r23								; if len(z)=0 => return
+		brne		circular_print_loop_pre
+		jmp			circular_print_ret
 circular_print_loop_pre:							; this loop is for printing multiple cycles
 		clr			r17								; r17 = current start position
 circular_print_loop:								; this loop is for printing 1 entire cycle

@@ -6,18 +6,17 @@
 ; ===================================================================================
 
 
-.def	menu_reg = r18
+.equ	SETTINGS_SOUND_STATE = 0x500
+.equ	SETTINGS_TUTO_STATE = 0x502
+.equ	CURR_ROUND = 0x504
+.equ	SOLO_GAME = 0x506
+.equ	CURR_MENU = 0x508
+.equ	NUM_OF_PLAYERS = 0x50A
+.equ	NUM_OF_ROUNDS = 0x50C
+.equ	MEASURED_DIST = 0x50E
+.equ	SCORES = 0x510
 
-
-.equ	SCORES = 0x4E0
-.equ	CURR_ROUND = 0x502
-.equ	SOLO_GAME = 0x504
-.equ	CURR_MENU = 0x506
-.equ	NUM_OF_PLAYERS = 0x508
-.equ	NUM_OF_ROUNDS = 0x50A
-.equ	MEASURED_DIST = 0x50C
-
-.equ	NUM_MENUS = 4
+.equ	NUM_MENUS = 5
 .equ	MAX_PLAYERS = 9
 .equ	MAX_SOLO_ROUNDS = 9
 .equ	DISTANCE_EPSILON = 3
@@ -37,6 +36,93 @@ play_again:			.db	"Pour recommencer la partie, appuyez sur la touche OK de votre
 ; ===================================== MACROS ======================================
 ; ===================================================================================
 
+
+; === MUTE_SOUND ====================================================================
+; purpose	mute mutable sounds
+;			clear SETTINGS_SOUND_STATE
+; ===================================================================================
+.macro	MUTE_SOUND
+		clr				w
+		sts				SETTINGS_SOUND_STATE,		w
+		.endmacro
+
+; === UNMUTE_SOUND ==================================================================
+; purpose	unmute mutable sounds
+;			set SETTINGS_SOUND_STATE
+; ===================================================================================
+.macro	UNMUTE_SOUND
+		ser				w
+		sts				SETTINGS_SOUND_STATE,		w
+		.endmacro
+
+; === TOGGLE_SOUND ==================================================================
+; purpose	toggle SETTINGS_SOUND_STATE
+;			SETTINGS_SOUND_STATE decides whether sounds will be played or not
+; ===================================================================================
+.macro	TOGGLE_SOUND
+		ser				a0
+		lds				w,							SETTINGS_SOUND_STATE
+		tst				w												; if SETTINGS_SOUND_STATE == 0 => SETTINGS_SOUND_STATE = 1
+		breq			PC+2
+		clr				a0
+		sts				SETTINGS_SOUND_STATE,		a0
+		.endmacro
+
+; === PLAY_MUTABLE ==================================================================
+; purpose	plays a sound by calling the given routine iff SETTINGS_SOUND_STATE != 0
+; in:		@0	the sound routine to call
+; ===================================================================================
+.macro	PLAY_MUTABLE
+		lds				w,							SETTINGS_SOUND_STATE
+		tst				w
+		breq			PC+2
+		call			@0
+		.endmacro
+
+; === HIDE_TUTO =====================================================================
+; purpose	hides tuto texts
+;			clear SETTINGS_TUTO_STATE
+; ===================================================================================
+.macro	HIDE_TUTO
+		clr				w
+		sts				SETTINGS_TUTO_STATE,		w
+		.endmacro
+
+; === DISPLAY_TUTO ==================================================================
+; purpose	unhides tuto texts
+;			set SETTINGS_TUTO_STATE
+; ===================================================================================
+.macro	DISPLAY_TUTO
+		ser				w
+		sts				SETTINGS_TUTO_STATE,		w
+		.endmacro
+
+; === TOGGLE_TUTO ===================================================================
+; purpose	toggle SETTINGS_TUTO_STATE
+;			SETTINGS_TUTO_STATE decides whether tuto texts  will be displayed or not
+; ===================================================================================
+.macro	TOGGLE_TUTO
+		ser				a0
+		lds				w,							SETTINGS_TUTO_STATE
+		tst				w												; if SETTINGS_TUTO_STATE == 0 => SETTINGS_TUTO_STATE = 1
+		breq			PC+2
+		clr				a0
+		sts				SETTINGS_TUTO_STATE,		a0
+		.endmacro
+
+; === PRINT_TUTO ====================================================================
+; purpose	prints the given tuto message iff SETTINGS_TUTO_STATE != 0
+; in:		@0	pointer to the string to print
+; ===================================================================================
+.macro	PRINT_TUTO
+		LDIZ			(2*@0)
+		ldi				r16,						1
+		lds				r17,						SETTINGS_SOUND_STATE
+		tst				r17
+		breq			PC+2
+		call			circular_print
+		.endmacro
+
 ; === COUNT_DOWN ====================================================================
 ; purpose	counts down before a race (3, 2, 1, GO!)
 ;			displays the numbers on the LCD screen and plays a sound
@@ -44,21 +130,30 @@ play_again:			.db	"Pour recommencer la partie, appuyez sur la touche OK de votre
 .macro	COUNT_DOWN
 		LCD_PRINT
 		.db				"3", 0
-		rcall			play_race_3_sound ; duration: 1/4 second
+		PLAY_MUTABLE	play_race_3_sound ; duration: 1/4 second
 		WAIT_MS			750
 		LCD_PRINT
 		.db				"2", 0
-		rcall			play_race_2_sound ; duration: 1/4 second
+		PLAY_MUTABLE	play_race_2_sound ; duration: 1/4 second
 		WAIT_MS			750
 		LCD_PRINT
 		.db				"1", 0
-		rcall			play_race_1_sound ; duration: 1/4 second
+		PLAY_MUTABLE	play_race_1_sound ; duration: 1/4 second
 		WAIT_MS			750
 		LCD_PRINT
 		.db				"Go !!!", 0
-		rcall			play_race_go_sound ; duration: 1/2 second
+		PLAY_MUTABLE	play_race_go_sound ; duration: 1/2 second
 		.endmacro
 
+; === BR_MENU_OVF ===================================================================
+; purpose	branch if menu overflow
+; in:		@0:	label to jump to
+; ===================================================================================
+.macro	BR_MENU_OVF
+		lds				w,							CURR_MENU
+		cpi				w,							NUM_MENUS
+		brge			@0
+		.endmacro
 
 ; === CHECK_MENU ====================================================================
 ; purpose	check with the menu register if the given menu should be displayed
@@ -66,9 +161,10 @@ play_again:			.db	"Pour recommencer la partie, appuyez sur la touche OK de votre
 ;			@1:	menu routine
 ; ===================================================================================
 .macro	CHECK_MENU
-		cpi			menu_reg,		@0
-		brne		CHECK_MENU_no_match
-		rcall		@1
+		lds				w,							CURR_MENU
+		cpi				w,							@0
+		brne			CHECK_MENU_no_match
+		rcall			@1
 CHECK_MENU_no_match:
 		.endmacro
 
@@ -77,9 +173,9 @@ CHECK_MENU_no_match:
 ; purpose	updates the menu register with the next menu id
 ; ===================================================================================
 .macro	NEXT_MENU
-		lds			menu_reg,		CURR_MENU
-		inc			menu_reg
-		sts			CURR_MENU,		menu_reg
+		lds				w,							CURR_MENU
+		inc				w
+		sts				CURR_MENU,					w
 		.endmacro
 
 
@@ -87,18 +183,22 @@ CHECK_MENU_no_match:
 ; purpose	reset the menu register to the default value i.e. the first menu
 ; ===================================================================================
 .macro	RESET_MENUS
-		ldi			menu_reg,		0
-		sts			CURR_MENU,		menu_reg
+		ldi				w,							0
+		sts				CURR_MENU,					w
 		.endmacro
 
 ; === NEXT_ROUND ====================================================================
 ; purpose	increments the round
 ; ===================================================================================
 .macro	NEXT_ROUND
-		lds			r16,						CURR_ROUND
-		inc			r16
-		sts			CURR_ROUND,					r16
+		lds				w,							CURR_ROUND
+		inc				w
+		sts				CURR_ROUND,					w
 		.endmacro
+
+
+
+
 
 
 
@@ -113,9 +213,9 @@ CHECK_MENU_no_match:
 ; ===================================================================================
 welcome:
 		LCD_PRINT
-		.db			"Bienvenue !", 0
+		.db				"Bienvenue !", 0
 
-		rcall		play_welcome_sound
+		PLAY_MUTABLE	play_welcome_sound
 		ret
 
 ; === menu0 =========================================================================
@@ -123,7 +223,7 @@ welcome:
 ;			displays the welcome message and waits for player(s) to be ready
 ; ===================================================================================
 menu0:
-		CIRC_PRINT_ONCE	welcome_message
+		PRINT_TUTO		welcome_message
 		LCD_PRINT
 		.db				"Pressez OK", 0
 		rcall			Remote_wait_for_ok
@@ -138,7 +238,7 @@ menu0:
 ;			otherwise number of rounds = number of players (1 round per player)
 ; ===================================================================================
 menu1:
-		CIRC_PRINT_ONCE	number_of_players
+		PRINT_TUTO		number_of_players
 
 menu1_ask_n_players:													; let the user choose the number of players
 		LCD_PRINT
@@ -161,7 +261,7 @@ menu1_multi_game:
 menu1_solo_game:
 		ldi				r16,						1					; SOLO_GAME = 1, NUM_OF_PLAYERS = 1
 		sts				SOLO_GAME,					r16
-		CIRC_PRINT_ONCE	number_of_rounds
+		PRINT_TUTO		number_of_rounds
 
 menu1_ask_n_rounds:														; let the player choose the number of rounds
 		LCD_PRINT
@@ -175,7 +275,7 @@ menu1_ask_n_rounds:														; let the player choose the number of rounds
 		sts				NUM_OF_ROUNDS,				a0					; store chosen number of rounds in RAM
 		
 menu1_next:
-		CIRC_PRINT_ONCE	how_to_play
+		PRINT_TUTO		how_to_play
 		LCD_PRINT
 		.db				"OK pour mesurer", 0
 		rcall			Remote_wait_for_ok
@@ -184,7 +284,7 @@ menu1_next:
 
 		sts				MEASURED_DIST,				a0					; store measured distance
 
-		CIRC_PRINT_ONCE	ready_to_start
+		PRINT_TUTO		ready_to_start
 
 		NEXT_MENU
 
@@ -240,7 +340,7 @@ menu2_multi_game_next:
 		rjmp			menu2_multi_game
 
 menu2_multi_game_timeout:
-		rcall			play_wrong_sound
+		PLAY_MUTABLE	play_wrong_sound
 		rjmp			menu2_multi_game_next
 
 menu2_multi_game_done:
@@ -282,7 +382,7 @@ menu2_solo_game_cont:
 		POP2			a0,							r16
 		brlt			menu2_solo_game_done							; if it is the case, that's a win
 		PUSH2			a0, r16
-		rcall			play_wrong_sound								; play the "wrong answer" sound
+		PLAY_MUTABLE	play_wrong_sound								; play the "wrong answer" sound
 		POP2			a0,							r16
 		
 		cp				a0,							r16					; check whether the guessed value is below or above the real one
@@ -300,7 +400,7 @@ menu2_solo_game_next:
 		rjmp			menu2_solo_game
 
 menu2_solo_game_timeout:
-		rcall			play_wrong_sound
+		PLAY_MUTABLE	play_wrong_sound
 		rjmp			menu2_solo_game_next
 
 menu2_solo_game_done:
@@ -327,7 +427,7 @@ menu3_multi_game: ; TODO
 
 		; find the best score
 		CLR3			r16, r17, r18									; r16 = best-player-id
-																		; r17 = current best score
+		ldi				r17,						120					; r17 = current best score (lower is better) - set to an arbitrary high enough default value
 																		; r18 = loop counter
 		lds				r19,						NUM_OF_PLAYERS
 		LDIZ			SCORES
@@ -335,7 +435,7 @@ menu3_multi_game: ; TODO
 menu3_multi_game_loop:
 		ld				r20,						z+					; load score of current player
 		cp				r20,						r17					; compare the score with the current best
-		brge			menu3_multi_game_loop_continue					; if the score is not better, continue
+		brge			menu3_multi_game_loop_continue					; if the score is not better (lower = better), continue
 		mov				r16,						r18					; update current best player
 		mov				r17,						r20					; update current best score
 	
@@ -352,27 +452,26 @@ menu3_multi_game_loop_continue:
 		clr				b1
 		LCD_PRINT
 		.db				"Victoire de : ", FDEC, a, LF, CR, "Reponse = ", FDEC, b, 0
-		rcall			play_victory_sound
+		PLAY_MUTABLE	play_victory_sound
 		
 		rjmp			menu3_done
 
 menu3_solo_game:
-		lds				a0,							SCORES				; a = SCORE
-		clr				a1
-		cpi				a0,							DISTANCE_EPSILON
 		lds				a0,							MEASURED_DIST		; get the measured distance to display it
 		clr				a1
-		brge			menu3_solo_game_defeat
+		lds				r16,						SCORES				; r16 = SCORE
+		cpi				r16,						DISTANCE_EPSILON	; if score < DISTANCE_EPSILON => victory
+		brge			menu3_solo_game_defeat							; else defeat
 
 menu3_solo_game_win:													; display the victory message and play the victory sound
 		LCD_PRINT
 		.db				"Victoire !", LF, CR, "Reponse = ", FDEC, a, 0
-		rcall			play_victory_sound
+		PLAY_MUTABLE	play_victory_sound
 		rjmp			menu3_done
 menu3_solo_game_defeat:													; display the defeat message and play the defeat sound
 		LCD_PRINT
 		.db				"Defaite...", LF, CR, "Reponse = ", FDEC, a, 0
-		rcall			play_defeat_sound
+		PLAY_MUTABLE	play_defeat_sound
 		rjmp			menu3_done
 
 menu3_done:
@@ -385,7 +484,7 @@ menu3_done:
 ; purpose	asks the user if they want to play again
 ; ===================================================================================
 menu4:
-		CIRC_PRINT_ONCE	play_again
+		PRINT_TUTO	play_again
 		LCD_PRINT
 		.db				"OK pour relancer", 0
 
