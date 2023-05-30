@@ -41,12 +41,14 @@
 
 
 
-; === IRC_get_value ==========================================================
+; === IRC_get_value ================================================================
 ; purpose	returns the value entered via the IR controller
 ; out:		a1:a0	the pressed button or BTN_ERR (=-2) on error
-;					from button 0 to button 9 the returned value is the decimal value on the button
+;					from button 0 to button 9 the returned value is the decimal
+;					value on the button
 ;					for the MUTE (OK) button the returned value is BTN_OK = -1
-;					the returned value is available on register a (a1:a0) but can also be read from only a0
+;					the returned value is available on register a (a1:a0) but can
+;					also be read from only a0
 ; ===================================================================================
 IRC_get_value:
 			CLR2		b1,					b0

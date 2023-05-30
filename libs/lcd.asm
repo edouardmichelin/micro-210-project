@@ -68,7 +68,8 @@ str_len_ret:
 
 
 ; === circular_print ================================================================
-; purpose	prints a string of any length on the LCD screen by making it slide from right to left
+; purpose	prints a string of any length on the LCD screen by making it slide from
+;			right to left
 ; in:		r16		how many times should the text cycle
 ;			z		pointer to the text in memory
 ; out:	

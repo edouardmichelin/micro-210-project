@@ -111,7 +111,8 @@ handle_btn1_pressed:
 
 
 ; === handle_timer_ovf ==============================================================
-; purpose	increments the LEDs counter and checks if the current player is runnning out of time
+; purpose	increments the LEDs counter and checks if the current player is runnning
+;			out of time
 ;			the CURR_ROUND memory location is updated accordingly
 ; ===================================================================================
 handle_timer_ovf:

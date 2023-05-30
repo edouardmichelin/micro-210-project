@@ -20,12 +20,14 @@ IRC_STOP_REG_CLEAR
 
 
 ; === Remote_read_dec_until_ok ======================================================
-; purpose	read the decimal number input by the user on the remote (0..99) until the OK button is pressed
-;			and display each pressed number on the LCD screen
+; purpose	read the decimal number input by the user on the remote (0..99) until
+;			the OK button is pressed and display each pressed number on the LCD screen
 ; out:		a	returned value ranges from 0 to 99
 ;				high(a) can therefore be ignored
-; note		Even if REMOTE_MAX_DIGITS > 2, the routine will not be able to handle values above 2^8
-;			but is written such that there are not too many things to modify in case someone upgrades it in the future
+; note		Even if REMOTE_MAX_DIGITS > 2, the routine will not be able to handle
+;			values above 2^8
+;			but is written such that there are not too many things to modify in case
+;			someone upgrades it in the future
 ; ===================================================================================		
 Remote_read_dec_until_ok:
 			IRC_STOP_REG_CLEAR

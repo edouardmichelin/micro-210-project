@@ -21,8 +21,8 @@
 .equ	MAX_SOLO_ROUNDS = 9
 .equ	DISTANCE_EPSILON = 3
 
-welcome_message:	.db "Bienvenue ! Pour demarrer, pressez le bouton MUTE de la telecommande.", 0
-how_to_play:		.db "Placez la carte STK300 sous une surface, puis appuyez sur la touche MUTE de la telecommande afin de mesurer la distance et lancer la partie.", 0
+welcome_message:	.db "Bienvenue ! Pour demarrer, pressez le bouton MUTE de la telecommande. Le bouton MUTE fera office de bouton OK", 0
+how_to_play:		.db "Placez la carte sous une surface, puis appuyez sur la touche OK de la telecommande afin de mesurer la distance et lancer la partie.", 0
 number_of_players:	.db "Combien de joueurs participeront au jeu ? Entrez une valeur entre 1 et 9 a l'aide de la telecommande.", 0
 number_of_rounds:	.db "Lorsque vous etes seul, vous pouvez choisir le nombre de tentatives auxquelles vous aurez le droit. Entrez une valeur entre 1 et 9 a l'aide de la telecommande.", 0
 ready_to_start:		.db "La partie est maintenant prete a debuter. Chaque tour est limite dans le temps ; vous devez entrez votre choix avant que la barre de LEDs rouge ne se remplisse. Pour valider votre reponse, pressez le bouton OK de la telecommande. A la fin de ce message, vous disposerez de 3 secondes avant que le debut du chronometre. Alors etes-vous pret ?", 0
